@@ -574,13 +574,27 @@ elif page == "📈 Forecast":
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Forecast table
+            # Forecast table with min/max bounds
             st.markdown("### Forecast Values")
             fc_display = forecast_df.copy()
-            fc_display["yhat"] = fc_display["yhat"].round(2)
-            fc_display.columns = ["Date", "Forecasted Units"]
-            fc_display["Date"] = fc_display["Date"].dt.strftime("%Y-%m-%d")
+            fc_display["Forecast_Min"] = (fc_display["yhat"] - rmse).clip(lower=0)
+            fc_display["Forecast_Max"] = fc_display["yhat"] + rmse
+            fc_display["yhat"]         = fc_display["yhat"].round(2)
+            fc_display["Forecast_Min"] = fc_display["Forecast_Min"].round(2)
+            fc_display["Forecast_Max"] = fc_display["Forecast_Max"].round(2)
+            fc_display["ds"]           = fc_display["ds"].dt.strftime("%Y-%m-%d")
+            fc_display.columns         = ["Date", "Forecasted_Units", "Forecast_Min", "Forecast_Max"]
+
             st.dataframe(fc_display, use_container_width=True, hide_index=True)
+
+            # CSV download
+            csv_bytes = fc_display.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="⬇️ Download Forecast CSV",
+                data=csv_bytes,
+                file_name=f"forecast_{selected_item.replace(' ', '_')}_{model_choice}.csv",
+                mime="text/csv",
+            )
 
             # Feature importance (tree models)
             if model_choice in ["LightGBM", "XGBoost"]:
